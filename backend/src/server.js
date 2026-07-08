@@ -63,8 +63,9 @@ ensureDirectories(config.uploadDir, config.compressedDir)
   .then(runCleanup)
   .then(() => {
     startCleanupInterval();
-    app.listen(config.port, () => {
-      console.log(`Video compressor API running on http://localhost:${config.port}`);
+    app.listen(config.port, config.host, () => {
+      console.log(`Video compressor app running on http://${config.host}:${config.port}`);
+      console.log(`Frontend dist path: ${frontendDistPath}`);
     });
   })
   .catch((error) => {

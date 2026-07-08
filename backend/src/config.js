@@ -14,6 +14,7 @@ const resolveFromBackend = (value, fallback) => {
 
 const config = {
   port: toNumber(process.env.PORT, 4000),
+  host: process.env.HOST || "0.0.0.0",
   nodeEnv: process.env.NODE_ENV || "development",
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
   maxFileSizeMb: toNumber(process.env.MAX_FILE_SIZE_MB, 1000),
