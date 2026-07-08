@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+.env
+*.log
+backend/src/uploads/*
+backend/src/compressed/*
+!backend/src/uploads/.gitkeep
+!backend/src/compressed/.gitkeep
