@@ -87,6 +87,34 @@ Backend: `http://localhost:4000`
 
 El contenedor del backend instala FFmpeg automáticamente.
 
+## Docker en un solo servicio
+
+Si tu hosting solo expone un contenedor o un servicio Node, usa el `Dockerfile` de la raíz. Ese build compila el frontend, copia `frontend/dist` y arranca el backend sirviendo la app desde `/`.
+
+```bash
+cd video-compressor-web
+docker build -t video-compressor-web .
+docker run -p 4000:4000 --env-file backend/.env video-compressor-web
+```
+
+Luego apunta el dominio al puerto del contenedor. La página debe cargar desde `/` y la API desde `/api`.
+
+## Despliegue sin Docker
+
+Si subes los archivos a un VPS o hosting Node, debes construir el frontend antes de iniciar el backend:
+
+```bash
+cd frontend
+npm install
+npm run build
+
+cd ../backend
+npm install
+npm start
+```
+
+El backend busca la app compilada en `frontend/dist/index.html`. Si esa carpeta no existe en producción, verás el mensaje `Frontend build not found`.
+
 ## Producción
 
 - Usa HTTPS delante de los servicios, por ejemplo con Nginx, Traefik o un balanceador cloud.
@@ -94,4 +122,3 @@ El contenedor del backend instala FFmpeg automáticamente.
 - Ajusta `RATE_LIMIT_MAX` y `MAX_FILE_SIZE_MB` según capacidad del servidor.
 - Usa almacenamiento temporal con suficiente espacio libre.
 - Ejecuta los contenedores con límites de CPU/memoria si el servicio será público.
-
