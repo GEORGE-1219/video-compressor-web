@@ -4,12 +4,13 @@ import { MAX_FILE_SIZE_MB, validateVideoFile } from "../utils";
 
 type UploadBoxProps = {
   isUploading: boolean;
+  uploadProgress: number;
   error: string | null;
   onFileSelected: (file: File) => void;
   onValidationError: (message: string) => void;
 };
 
-export function UploadBox({ isUploading, error, onFileSelected, onValidationError }: UploadBoxProps) {
+export function UploadBox({ isUploading, uploadProgress, error, onFileSelected, onValidationError }: UploadBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -37,17 +38,21 @@ export function UploadBox({ isUploading, error, onFileSelected, onValidationErro
       <div
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          if (!isUploading) inputRef.current?.click();
+        }}
         onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") inputRef.current?.click();
+          if (!isUploading && (event.key === "Enter" || event.key === " ")) inputRef.current?.click();
         }}
         onDragOver={(event) => {
           event.preventDefault();
+          if (isUploading) return;
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={(event) => {
           event.preventDefault();
+          if (isUploading) return;
           setIsDragging(false);
           handleFile(event.dataTransfer.files[0]);
         }}
@@ -69,8 +74,26 @@ export function UploadBox({ isUploading, error, onFileSelected, onValidationErro
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-violet-700 shadow-lg">
           {isUploading ? <UploadCloud className="h-9 w-9 animate-pulse" /> : <Plus className="h-10 w-10" />}
         </div>
-        <p className="mt-6 text-2xl font-black text-white">Carga o arrastra y suelta tu archivo</p>
-        <p className="mt-3 text-sm font-medium text-violet-50">El archivo puede pesar hasta {MAX_FILE_SIZE_MB} MB</p>
+        <p className="mt-6 text-2xl font-black text-white">
+          {isUploading ? "Subiendo video..." : "Carga o arrastra y suelta tu archivo"}
+        </p>
+        <p className="mt-3 text-sm font-medium text-violet-50">
+          {isUploading ? "Mantén esta ventana abierta" : `El archivo puede pesar hasta ${MAX_FILE_SIZE_MB} MB`}
+        </p>
+        {isUploading && (
+          <div className="mt-6 w-full max-w-md rounded-lg bg-white/20 p-3">
+            <div className="flex items-center justify-between text-sm font-bold text-white">
+              <span>Cargando archivo</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/30">
+              <div
+                className="h-full rounded-full bg-white transition-all duration-300"
+                style={{ width: `${Math.max(0, Math.min(uploadProgress, 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
         {error && <p className="mt-5 rounded-lg bg-white/95 px-4 py-2 text-sm font-semibold text-rose-700">{error}</p>}
       </div>
 
