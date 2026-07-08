@@ -19,6 +19,7 @@ const config = {
   maxFileSizeMb: toNumber(process.env.MAX_FILE_SIZE_MB, 1000),
   uploadDir: resolveFromBackend(process.env.UPLOAD_DIR, "src/uploads"),
   compressedDir: resolveFromBackend(process.env.COMPRESSED_DIR, "src/compressed"),
+  frontendDistDir: resolveFromBackend(process.env.FRONTEND_DIST_DIR, "../frontend/dist"),
   fileTtlMinutes: toNumber(process.env.FILE_TTL_MINUTES, 60),
   rateLimitWindowMinutes: toNumber(process.env.RATE_LIMIT_WINDOW_MINUTES, 15),
   rateLimitMax: toNumber(process.env.RATE_LIMIT_MAX, 60),
@@ -30,4 +31,3 @@ config.maxFileSizeBytes = config.maxFileSizeMb * 1024 * 1024;
 config.fileTtlMs = config.fileTtlMinutes * 60 * 1000;
 
 module.exports = config;
-

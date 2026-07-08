@@ -26,6 +26,13 @@ En Windows, si FFmpeg no está en el `PATH`, define `FFMPEG_PATH` y opcionalment
 ## Instalación
 
 ```bash
+cd video-compressor-web
+npm run build
+```
+
+O de forma separada:
+
+```bash
 cd video-compressor-web/backend
 copy .env.example .env
 npm install
@@ -64,6 +71,7 @@ Backend:
 - `MAX_FILE_SIZE_MB`: peso máximo del video.
 - `UPLOAD_DIR`: carpeta temporal de archivos originales.
 - `COMPRESSED_DIR`: carpeta temporal de archivos comprimidos.
+- `FRONTEND_DIST_DIR`: ruta al frontend compilado. Por defecto `../frontend/dist` desde la carpeta `backend`.
 - `FILE_TTL_MINUTES`: minutos antes de limpieza automática.
 - `RATE_LIMIT_WINDOW_MINUTES`: ventana de rate limit.
 - `RATE_LIMIT_MAX`: solicitudes máximas por ventana.
@@ -104,12 +112,8 @@ Luego apunta el dominio al puerto del contenedor. La página debe cargar desde `
 Si subes los archivos a un VPS o hosting Node, debes construir el frontend antes de iniciar el backend:
 
 ```bash
-cd frontend
-npm install
+cd video-compressor-web
 npm run build
-
-cd ../backend
-npm install
 npm start
 ```
 
