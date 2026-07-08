@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "Full stack video compressor web app.",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "install:all": "npm install --prefix frontend && npm install --prefix backend",
-    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
+    "build": "npm run build --workspace video-compressor-frontend",
     "start": "node backend/src/server.js",
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+    "dev": "concurrently \"npm run dev --workspace video-compressor-backend\" \"npm run dev --workspace video-compressor-frontend\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
