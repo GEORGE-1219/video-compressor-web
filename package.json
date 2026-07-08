@@ -12,7 +12,7 @@
     "backend"
   ],
   "scripts": {
-    "build": "npm run build --workspace video-compressor-frontend",
+    "build": "npm run build --workspace video-compressor-frontend && node scripts/sync-frontend-build.js",
     "postinstall": "npm run build",
     "start": "node backend/src/server.js",
     "dev": "concurrently \"npm run dev --workspace video-compressor-backend\" \"npm run dev --workspace video-compressor-frontend\""

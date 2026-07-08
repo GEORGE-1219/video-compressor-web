@@ -12,7 +12,14 @@ const { ensureDirectories } = require("./utils/files");
 const { runCleanup, startCleanupInterval } = require("./services/fileCleanupService");
 
 const app = express();
-const frontendDistPath = config.frontendDistDir;
+const frontendDistCandidates = [
+  config.frontendDistDir,
+  path.resolve(__dirname, "../../frontend/dist"),
+  path.resolve(process.cwd(), "frontend/dist"),
+];
+const frontendDistPath =
+  frontendDistCandidates.find((candidate) => fs.existsSync(path.join(candidate, "index.html"))) ||
+  config.frontendDistDir;
 const frontendIndexPath = path.join(frontendDistPath, "index.html");
 
 app.use(helmet());
@@ -50,7 +57,7 @@ if (fs.existsSync(frontendIndexPath)) {
   app.get("/", (_request, response) => {
     response
       .status(503)
-      .send(`Frontend build not found at ${frontendIndexPath}. Run npm run build from the project root.`);
+      .send(`Frontend build not found. Checked: ${frontendDistCandidates.join(", ")}.`);
   });
 }
 
