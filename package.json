@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "description": "Full stack video compressor web app.",
+  "main": "backend/src/server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "workspaces": [
     "frontend",
     "backend"
   ],
   "scripts": {
     "build": "npm run build --workspace video-compressor-frontend",
+    "postinstall": "npm run build",
     "start": "node backend/src/server.js",
     "dev": "concurrently \"npm run dev --workspace video-compressor-backend\" \"npm run dev --workspace video-compressor-frontend\""
   },
