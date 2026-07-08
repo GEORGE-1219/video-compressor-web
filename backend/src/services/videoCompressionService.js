@@ -40,22 +40,25 @@ if (ffprobePath) {
 
 const compressionProfiles = {
   high: {
-    crf: 32,
-    preset: "medium",
-    audioBitrate: "96k",
-    scaleTo720p: true,
+    crf: 34,
+    preset: "veryfast",
+    audioBitrate: "48k",
+    targetRatio: 0.1,
+    maxHeight: 720,
   },
   medium: {
-    crf: 28,
-    preset: "medium",
-    audioBitrate: "128k",
-    scaleTo720p: false,
+    crf: 30,
+    preset: "veryfast",
+    audioBitrate: "64k",
+    targetRatio: 0.22,
+    maxHeight: 720,
   },
   low: {
-    crf: 23,
-    preset: "slow",
-    audioBitrate: "192k",
-    scaleTo720p: false,
+    crf: 26,
+    preset: "fast",
+    audioBitrate: "96k",
+    targetRatio: 0.35,
+    maxHeight: 1080,
   },
 };
 
@@ -100,6 +103,29 @@ const runFfmpegCommand = (args) =>
       resolve({ stdout, stderr });
     });
   });
+
+const probeVideo = (inputPath) =>
+  new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(inputPath, (error, metadata) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(metadata);
+    });
+  });
+
+const getAudioBitrateKbps = (audioBitrate) => Number.parseInt(audioBitrate, 10) || 96;
+
+const getTargetVideoBitrate = ({ inputSize, duration, profile }) => {
+  if (!duration || duration <= 0) return null;
+
+  const targetBytes = inputSize * profile.targetRatio;
+  const totalKbps = (targetBytes * 8) / duration / 1000;
+  const videoKbps = Math.floor(totalKbps - getAudioBitrateKbps(profile.audioBitrate));
+
+  return Math.max(80, videoKbps);
+};
 
 const checkFfmpegEncode = async () => {
   if (!ffmpegPath) {
@@ -172,7 +198,7 @@ const checkFfmpegEncode = async () => {
   }
 };
 
-const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress }) => {
+const compressVideo = async ({ inputPath, outputPath, level, outputFormat, onProgress }) => {
   const profile = compressionProfiles[level];
   if (!profile) {
     throw new Error("Nivel de compresión no válido.");
@@ -182,6 +208,14 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
     throw new Error("Formato de salida no válido.");
   }
 
+  const [inputStats, metadata] = await Promise.all([fs.stat(inputPath), probeVideo(inputPath)]);
+  const duration = Number(metadata.format?.duration) || 0;
+  const targetVideoBitrate = getTargetVideoBitrate({
+    inputSize: inputStats.size,
+    duration,
+    profile,
+  });
+
   return new Promise((resolve, reject) => {
     const command = ffmpeg(inputPath).output(outputPath);
 
@@ -190,7 +224,20 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
         .videoCodec("libx264")
         .audioCodec("aac")
         .audioBitrate(profile.audioBitrate)
-        .outputOptions(["-crf", String(profile.crf), "-preset", profile.preset, "-movflags", "+faststart"])
+        .outputOptions([
+          "-crf",
+          String(profile.crf),
+          "-preset",
+          profile.preset,
+          "-b:v",
+          `${targetVideoBitrate || 600}k`,
+          "-maxrate",
+          `${targetVideoBitrate || 600}k`,
+          "-bufsize",
+          `${(targetVideoBitrate || 600) * 2}k`,
+          "-movflags",
+          "+faststart",
+        ])
         .format("mp4");
     }
 
@@ -199,12 +246,17 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
         .videoCodec("libvpx-vp9")
         .audioCodec("libopus")
         .audioBitrate(profile.audioBitrate)
-        .outputOptions(["-crf", String(profile.crf), "-b:v", "0"])
+        .outputOptions([
+          "-crf",
+          String(profile.crf),
+          "-b:v",
+          `${targetVideoBitrate || 600}k`,
+        ])
         .format("webm");
     }
 
-    if (profile.scaleTo720p) {
-      command.videoFilters("scale='min(1280,iw)':-2");
+    if (profile.maxHeight) {
+      command.videoFilters(`scale=-2:'min(${profile.maxHeight},ih)'`);
     }
 
     command
@@ -216,6 +268,14 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
       })
       .on("end", async () => {
         const stats = await fs.stat(outputPath);
+        if (stats.size >= inputStats.size) {
+          reject(
+            new Error(
+              "El video original ya está muy optimizado. No fue posible reducirlo con este nivel de compresión.",
+            ),
+          );
+          return;
+        }
         onProgress?.(100);
         resolve({
           outputPath,

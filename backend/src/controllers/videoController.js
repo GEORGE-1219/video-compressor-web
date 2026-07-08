@@ -111,7 +111,9 @@ const startCompression = async (request, response) => {
     })
     .catch(async (error) => {
       job.status = "failed";
-      job.error = "Ocurrió un error durante la compresión.";
+      job.error = error.message.includes("optimizado")
+        ? error.message
+        : "Ocurrió un error durante la compresión.";
       job.debugMessage = error.message;
       console.error("Video compression failed:", {
         jobId,
