@@ -1,6 +1,8 @@
 const fs = require("fs/promises");
 const fsSync = require("fs");
 const { execFile } = require("child_process");
+const os = require("os");
+const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
 const config = require("../config");
 
@@ -86,6 +88,90 @@ const checkFfmpeg = () =>
     });
   });
 
+const runFfmpegCommand = (args) =>
+  new Promise((resolve, reject) => {
+    execFile(ffmpegPath, args, { timeout: 15000 }, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+
+const checkFfmpegEncode = async () => {
+  if (!ffmpegPath) {
+    return {
+      ok: false,
+      message: "FFmpeg binary was not found.",
+    };
+  }
+
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "video-compressor-"));
+  const mp4Output = path.join(directory, "health.mp4");
+  const webmOutput = path.join(directory, "health.webm");
+
+  try {
+    await runFfmpegCommand([
+      "-hide_banner",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc=size=160x120:rate=10",
+      "-t",
+      "1",
+      "-pix_fmt",
+      "yuv420p",
+      "-vcodec",
+      "libx264",
+      "-crf",
+      "32",
+      "-preset",
+      "veryfast",
+      "-an",
+      mp4Output,
+    ]);
+
+    await runFfmpegCommand([
+      "-hide_banner",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc=size=160x120:rate=10",
+      "-t",
+      "1",
+      "-vcodec",
+      "libvpx-vp9",
+      "-crf",
+      "32",
+      "-b:v",
+      "0",
+      "-an",
+      webmOutput,
+    ]);
+
+    const [mp4Stats, webmStats] = await Promise.all([fs.stat(mp4Output), fs.stat(webmOutput)]);
+
+    return {
+      ok: true,
+      mp4Bytes: mp4Stats.size,
+      webmBytes: webmStats.size,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error.message,
+      stderr: error.stderr?.slice(0, 1000) || null,
+    };
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+};
+
 const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress }) => {
   const profile = compressionProfiles[level];
   if (!profile) {
@@ -144,6 +230,7 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
 };
 
 module.exports = {
+  checkFfmpegEncode,
   checkFfmpeg,
   compressionProfiles,
   compressVideo,
