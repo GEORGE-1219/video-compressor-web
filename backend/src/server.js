@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 const videoRoutes = require("./routes/videoRoutes");
+const { checkFfmpeg } = require("./services/videoCompressionService");
 const { ensureDirectories } = require("./utils/files");
 const { runCleanup, startCleanupInterval } = require("./services/fileCleanupService");
 
@@ -41,6 +42,11 @@ app.use(
 
 app.get("/health", (_request, response) => {
   response.json({ status: "ok" });
+});
+
+app.get("/health/ffmpeg", async (_request, response) => {
+  const result = await checkFfmpeg();
+  response.status(result.ok ? 200 : 500).json(result);
 });
 
 app.use("/api/videos", videoRoutes);

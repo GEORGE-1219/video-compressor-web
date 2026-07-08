@@ -1,4 +1,6 @@
 const fs = require("fs/promises");
+const fsSync = require("fs");
+const { execFile } = require("child_process");
 const ffmpeg = require("fluent-ffmpeg");
 const config = require("../config");
 
@@ -13,6 +15,18 @@ const resolveBundledBinary = (packageName) => {
 
 const ffmpegPath = config.ffmpegPath || resolveBundledBinary("ffmpeg-static");
 const ffprobePath = config.ffprobePath || resolveBundledBinary("ffprobe-static");
+
+const ensureExecutable = (binaryPath) => {
+  if (!binaryPath || process.platform === "win32") return;
+  try {
+    fsSync.chmodSync(binaryPath, 0o755);
+  } catch (error) {
+    console.warn(`Could not set executable permission for ${binaryPath}:`, error.message);
+  }
+};
+
+ensureExecutable(ffmpegPath);
+ensureExecutable(ffprobePath);
 
 if (ffmpegPath) {
   ffmpeg.setFfmpegPath(ffmpegPath);
@@ -44,6 +58,33 @@ const compressionProfiles = {
 };
 
 const outputFormats = new Set(["mp4", "webm"]);
+
+const checkFfmpeg = () =>
+  new Promise((resolve) => {
+    if (!ffmpegPath) {
+      resolve({
+        ok: false,
+        message: "FFmpeg binary was not found.",
+      });
+      return;
+    }
+
+    execFile(ffmpegPath, ["-version"], { timeout: 5000 }, (error, stdout, stderr) => {
+      if (error) {
+        resolve({
+          ok: false,
+          message: error.message,
+          stderr: stderr?.slice(0, 500) || null,
+        });
+        return;
+      }
+
+      resolve({
+        ok: true,
+        version: stdout.split("\n")[0],
+      });
+    });
+  });
 
 const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress }) => {
   const profile = compressionProfiles[level];
@@ -103,6 +144,7 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
 };
 
 module.exports = {
+  checkFfmpeg,
   compressionProfiles,
   compressVideo,
   ffmpegPath,
