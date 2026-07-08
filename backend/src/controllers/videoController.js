@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const config = require("../config");
 const { jobs, uploads } = require("../services/jobStore");
 const { cleanupJob, cleanupUpload } = require("../services/fileCleanupService");
-const { compressVideo, compressionProfiles, outputFormats } = require("../services/videoCompressionService");
+const { compressVideo, compressionProfiles, ffmpegPath, outputFormats } = require("../services/videoCompressionService");
 const { formatBytes, isAllowedExtension, removeFileQuietly } = require("../utils/files");
 
 const sendError = (response, status, message) => {
@@ -113,6 +113,13 @@ const startCompression = async (request, response) => {
       job.status = "failed";
       job.error = "Ocurrió un error durante la compresión.";
       job.debugMessage = error.message;
+      console.error("Video compression failed:", {
+        jobId,
+        level,
+        outputFormat,
+        ffmpegPath,
+        error: error.message,
+      });
       await removeFileQuietly(outputPath);
       await cleanupUpload(uploadId);
     });
@@ -193,4 +200,3 @@ module.exports = {
   streamProgress,
   uploadVideo,
 };
-

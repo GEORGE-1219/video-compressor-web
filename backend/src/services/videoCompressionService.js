@@ -2,12 +2,24 @@ const fs = require("fs/promises");
 const ffmpeg = require("fluent-ffmpeg");
 const config = require("../config");
 
-if (config.ffmpegPath) {
-  ffmpeg.setFfmpegPath(config.ffmpegPath);
+const resolveBundledBinary = (packageName) => {
+  try {
+    const bundled = require(packageName);
+    return typeof bundled === "string" ? bundled : bundled?.path;
+  } catch {
+    return null;
+  }
+};
+
+const ffmpegPath = config.ffmpegPath || resolveBundledBinary("ffmpeg-static");
+const ffprobePath = config.ffprobePath || resolveBundledBinary("ffprobe-static");
+
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
 }
 
-if (config.ffprobePath) {
-  ffmpeg.setFfprobePath(config.ffprobePath);
+if (ffprobePath) {
+  ffmpeg.setFfprobePath(ffprobePath);
 }
 
 const compressionProfiles = {
@@ -93,6 +105,7 @@ const compressVideo = ({ inputPath, outputPath, level, outputFormat, onProgress 
 module.exports = {
   compressionProfiles,
   compressVideo,
+  ffmpegPath,
+  ffprobePath,
   outputFormats,
 };
-
