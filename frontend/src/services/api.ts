@@ -19,7 +19,7 @@ export type ProgressEventPayload = {
   message: string | null;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const readError = async (response: Response) => {
   const body = await response.json().catch(() => null);
@@ -86,4 +86,3 @@ export const subscribeToProgress = (
 };
 
 export const getDownloadUrl = (jobId: string) => `${API_URL}/videos/download/${jobId}`;
-
